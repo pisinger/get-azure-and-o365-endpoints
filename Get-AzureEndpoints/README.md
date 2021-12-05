@@ -1,12 +1,13 @@
 # Get-AzureEndpoints
- 
+
 This script downloads "AzureServiceTags" json file and parsing it into csv to get a single subnets per row view. The script always checks for local csv copy and using it for filtering (checking script execution folder). So simply re-run the script to apply filters you are interested in.
 
 Note: First run will take some time due to initial parsing.
 
-https://www.microsoft.com/en-us/download/details.aspx?id=56519
+> <https://www.microsoft.com/en-us/download/details.aspx?id=56519/>
 
 **Examples**
+
 ```powershell
 Get-AzureEndpoints | select Name -Unique | sort Name
 Get-AzureEndpoints -IPv4 | where Name -like "*frontdoor*" | ft -AutoSize
@@ -18,6 +19,7 @@ Get-AzureEndpoints -IPv4 | where Name -like *ThreatProtection* | ft
 ```
 
 **Below examples with output shown**
+
 ```powershell
 Get-AzureEndpoints -IPv4 | where Region -like "*ger*" | where Name -like "sql" | ft
 
@@ -41,9 +43,7 @@ Sql  GermanyWestCentral germanywc AzureSQL 51.116.241.0/27
 Sql  GermanyWestCentral germanywc AzureSQL 51.116.248.0/27
 Sql  GermanyWestCentral germanywc AzureSQL 51.116.248.32/29
 Sql  GermanyWestCentral germanywc AzureSQL 51.116.249.0/27
-
 ```
-
 
 ```powershell
 Get-AzureEndpoints -IPv4 | where Subnets -like "147.*"
@@ -53,9 +53,7 @@ SubName : Backend
 Region  :
 Service :
 Subnets : 147.243.0.0/16
-
 ```
-
 
 ```powershell
 Get-AzureEndpoints -IPv4 | where Region -like "*ger*" | ft
@@ -82,5 +80,4 @@ AzureArcInfrastructure      GermanyWestCentral germanywc AzureArcInfrastructure 
 AzureArcInfrastructure      GermanyWestCentral germanywc AzureArcInfrastructure      51.116.146.212/30
 AzureArcInfrastructure      GermanyWestCentral germanywc AzureArcInfrastructure      51.116.158.60/32
 AzureBackup                 GermanyNorth       germanyn  AzureBackup                 51.116.55.0/26
-
 ```
