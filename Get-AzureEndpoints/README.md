@@ -16,6 +16,9 @@ Get-AzureEndpoints -IPv4 | where Region -like "*ger*" | ft -AutoSize
 Get-AzureEndpoints -IPv4 | where Region -like "*ger*" | where Name -like "sql" | ft
 Get-AzureEndpoints -IPv4 | where Region -like "*ger*"| select Subnets -Unique
 Get-AzureEndpoints -IPv4 | where Name -like *ThreatProtection* | ft
+Get-AzureEndpoints -IPv4 | group region | sort Count -Descending
+Get-AzureEndpoints -IPv4 | where Region -like "*europe*" | group region
+Get-AzureEndpoints -IPv4 | where Region -like "*europe*" | group Service | sort Count -Descending
 ```
 
 **Below examples with output shown:**
