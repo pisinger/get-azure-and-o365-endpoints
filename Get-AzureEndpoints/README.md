@@ -6,7 +6,7 @@ Note: First run will take some time due to initial parsing.
 
 > <https://www.microsoft.com/en-us/download/details.aspx?id=56519/>
 
-**Examples**
+**Examples:**
 
 ```powershell
 Get-AzureEndpoints | select Name -Unique | sort Name
@@ -18,7 +18,7 @@ Get-AzureEndpoints -IPv4 | where Region -like "*ger*"| select Subnets -Unique
 Get-AzureEndpoints -IPv4 | where Name -like *ThreatProtection* | ft
 ```
 
-**Below examples with output shown**
+**Below examples with output shown:**
 
 ```powershell
 Get-AzureEndpoints -IPv4 | where Region -like "*ger*" | where Name -like "sql" | ft
