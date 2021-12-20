@@ -40,14 +40,13 @@ ELSE {
 	$fileName = $downloadUri | Split-Path -Leaf
 	Invoke-WebRequest -Method Get -Uri $downloadUri -Outfile $($PSScriptRoot + "\" + $fileName)
 	
-	$json = Get-Content $($PSScriptRoot + "\" + $fileName) | ConvertFrom-Json			
-	$results = @()
-
-	$json.values| FOREACH {
+	$json = Get-Content $($PSScriptRoot + "\" + $fileName) | ConvertFrom-Json
+	
+	$results += $json.values| FOREACH {
 		$p = $_
 			
-		$p.properties.addressPrefixes | FOREACH {				
-			$results += [PSCustomObject]@{	
+		$p.properties.addressPrefixes | FOREACH {			
+			[PSCustomObject]@{
 				Name = ($p.Name -split "\.",2)[0]
 				SubName = ($p.Name -split "\.",2)[1]
 				Region = $p.properties.region
