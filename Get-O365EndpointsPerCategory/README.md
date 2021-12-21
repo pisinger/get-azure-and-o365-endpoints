@@ -47,7 +47,7 @@ In addition, you can use the script also to tack for changes within last time de
 ---
 
 ```powershell
-.\Get-O365EndpointsPerCategory.ps1 -Category Optimize -IPVersion IPv4 | ft
+Get-O365EndpointsPerCategory.ps1 -Category Optimize -IPVersion IPv4 | ft
 
 serviceArea category required protocol ports               ipsv4                                                                 urls
 ----------- -------- -------- -------- -----               -----                                                                 ----
@@ -57,7 +57,7 @@ SharePoint  Optimize     True tcp      80,443              {13.107.136.0/22, 40.
 ```
 
 ```powershell
-.\Get-O365EndpointsPerCategory.ps1 -Service Skype -Category Allow -IPVersion IPv4
+Get-O365EndpointsPerCategory.ps1 -Service Skype -Category Allow -IPVersion IPv4
 
 serviceArea : Skype
 category    : Allow
@@ -88,7 +88,7 @@ notes       : Teams: Messaging interop with Skype for Business
 ```
 
 ```powershell
-.\Get-O365EndpointsPerCategory.ps1 -ChangesWithinLastNumOfDays 180  | where serviceArea -like *skype* | ft
+Get-O365EndpointsPerCategory.ps1 -ChangesWithinLastNumOfDays 180  | where serviceArea -like *skype* | ft
 
 serviceArea version    category required protocol ports  impact                  ips urls
 ----------- -------    -------- -------- -------- -----  ------                  --- ----
