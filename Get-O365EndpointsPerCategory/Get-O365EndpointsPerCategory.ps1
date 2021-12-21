@@ -140,6 +140,8 @@ ELSE {
 	IF ($SearchURL) { $results = $results | Where-Object urls -match "$SearchURL" }
 	IF ($HttpOnly) 	{ $results = $results | Where-Object { $_.ports -like "*443*" -or $_.ports -like "*80*" -and $_.protocol -ne "udp" }}
 	IF ($URLsOnly) 	{ $results = $results | Where-Object urls -ne $NULL | Select-Object -ExpandProperty urls | Sort-Object -Unique }
+	IF ($IPversion -eq "IPv4") 	{ $results = $results | where-object ipsv4 -ne $NULL | select-object -ExcludeProperty ipsv6 }
+	IF ($IPversion -eq "IPv6") 	{ $results = $results | where-object ipsv6 -ne $NULL | select-object -ExcludeProperty ipsv4 }
 
 	IF ($IPsOnly) {
 		$results = $results | Where-Object { $_.ipsv4 -ne $NULL -or $_.ipsv6 -ne $NULL } | Sort-Object ipsv4, ipsv6 -Unique | Select-Object ipsv4, ipsv6
