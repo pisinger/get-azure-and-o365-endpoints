@@ -95,6 +95,7 @@ IF ($ChangesWithinLastNumOfDays) {
 		$serviceArea = $Endpoints | Where-Object id -eq $endp.endpointSetId
 		[PSCustomObject]@{
 			serviceArea = $serviceArea.serviceArea
+			endpointId	= $endp.endpointSetId
 			version 	= $endp.version
 			category    = $serviceArea.category
 			required    = $serviceArea.required
