@@ -10,6 +10,14 @@ In addition, you can use the script also to tack for changes within last time de
 
 ---
 
+**☝Tested with PowerShell 7 only:**
+
+> <https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.2/>
+
+> <https://aka.ms/powershell-release?tag=stable/>
+
+---
+
 **Specific switches/params:**
 
 ```txt
