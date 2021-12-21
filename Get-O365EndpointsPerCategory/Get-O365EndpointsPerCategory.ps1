@@ -14,6 +14,7 @@
 	.\Get-O365EndpointsPerCategory.ps1 -Service Skype -Category Any -Required $True -HttpOnly
 	.\Get-O365EndpointsPerCategory.ps1 -Service Skype -Category Optimize
 	.\Get-O365EndpointsPerCategory.ps1 -Service Skype -Category OptimizeAllow -IPsOnly
+	.\Get-O365EndpointsPerCategory.ps1 -Service Skype -Category OptimizeAllow -IPsOnly -IPVersion IPv4
 	.\Get-O365EndpointsPerCategory.ps1 -Service Skype -Category OptimizeAllow -URLsOnly
 	.\Get-O365EndpointsPerCategory.ps1 -Service Exchange -Category Allow -IPversion IPv6 -Required $True
 	.\Get-O365EndpointsPerCategory.ps1 -Service Any -Category Optimize
@@ -21,73 +22,130 @@
 	.\Get-O365EndpointsPerCategory.ps1 -Category OptimizeAllow -URLsOnly
 	.\Get-O365EndpointsPerCategory.ps1 -Service Any -Category Allow -Required $True -IPVersion IPv6
 	.\Get-O365EndpointsPerCategory.ps1 -Service Common -Category Allow -Required $True -IPversion IPv4
-	.\Get-O365EndpointsPerCategory.ps1 -SearchURL uservoice.com
+	.\Get-O365EndpointsPerCategory.ps1 -SearchURL office.net | ft
+
+	.\Get-O365EndpointsPerCategory.ps1 -ChangesWithinLastNumOfDays 60 | ft
+	.\Get-O365EndpointsPerCategory.ps1 -ChangesWithinLastNumOfDays 180  | where serviceArea -like *skype* | ft
+	(.\Get-O365EndpointsPerCategory.ps1 -ChangesWithinLastNumOfDays 180 | where impact -like *remove*).urls | select -Unique
+	(.\Get-O365EndpointsPerCategory.ps1 -ChangesWithinLastNumOfDays 180 | where impact -like *add*).urls | select -Unique
+	(.\Get-O365EndpointsPerCategory.ps1 -ChangesWithinLastNumOfDays 360 | where impact -like *add*).ips | select -Unique
 #>
 
 param (
-	[ValidateSet("Skype","Exchange","Sharepoint","Common","Any")]
+	[ValidateSet("Skype", "Exchange", "Sharepoint", "Common", "Any")]
 	[string]$Service = "any",
-	[ValidateSet("Optimize","OptimizeAllow","Allow","Default","Any")] 
+	[ValidateSet("Optimize", "OptimizeAllow", "Allow", "Default", "Any")] 
 	[array]$Category = "Any",
-	[ValidateSet("IPv4","IPv6")]
+	[ValidateSet("IPv4", "IPv6")]
 	[string]$IPVersion,
-	[ValidateSet("True","False")]
+	[ValidateSet("True", "False")]
 	[string]$Required,
 	[switch]$URLsOnly,
 	[switch]$IPsOnly,
 	[switch]$HttpOnly,
-	[string]$SearchURL
+	[string]$SearchURL,
+	[int]$ChangesWithinLastNumOfDays
 )
 
-# check for recent file
-IF(Test-Path "$env:Temp\o365endpoints.json"){
-	IF ((Get-Item "$env:Temp\o365endpoints.json").LastWriteTime -gt (Get-Date).AddDays(-1)){
-		$Endpoints = Get-Content "$env:Temp\o365endpoints.json" -Encoding utf8 | ConvertFrom-Json
-	}
-}
-ELSE {
-	$ClientID = [GUID]::NewGuid().Guid
-	$Instance = "Worldwide"
-	$EndpointUri = "https://endpoints.office.com/endpoints/" + $Instance + "?clientrequestid=" + $ClientID
-	# keep an offline copy
-	$Endpoints = Invoke-RestMethod -Uri $EndpointUri -OutFile "$env:temp\o365endpoints.json"
-	$Endpoints = Get-Content "$env:Temp\o365endpoints.json" -Encoding utf8 | ConvertFrom-Json
-}
-
-#---------------
-# pre-filtering
-IF ($Service -ne "any") { $Endpoints = $Endpoints | ? {$_.ServiceArea -eq $Service}}
-
-IF ($Category -eq "OptimizeAllow"){ $Endpoints = $Endpoints | ? {$_.Category -eq "Optimize" -or $_.Category -eq "Allow"}; $Category = "Optimize","Allow"}
-ELSEIF ($Category -ne "any" -and $Category -ne "OptimizeAllow"){$Endpoints = $Endpoints | ? {$_.Category -eq $Category}}
-ELSE { $Category = "Optimize","Allow","Default"}
-
-IF ($Required){ $Endpoints = $Endpoints | ? {$_.required -like $Required}}
-IF ($SearchURL) { $Endpoints = $Endpoints | where urls -match "$SearchURL"}
-IF ($HttpOnly){ $Endpoints = $Endpoints | ? {$_.tcpports -like "*443*" -or $_.tcpports -like "*80*"}}
-IF ($URLsOnly){ $Endpoints = $Endpoints | where urls -ne $NULL | Select -ExpandProperty urls | Sort -Unique}
-IF ($IPsOnly) {
-	$Endpoints = $Endpoints | ? {$_.ips -ne $NULL} | Select -ExpandProperty ips | Sort -Unique
-	IF ($IPversion -eq "IPv4"){$Endpoints = $Endpoints | ? {$_ -like "*.*"}} 
-	ELSEIF ($IPVersion -eq "IPv6") {$Endpoints = $Endpoints | ? {$_ -like "*:*"}}
-}
-#---------------
-Write-Output ""
-
-IF ($URLsOnly -or $IPsOnly){$Endpoints}
-ELSE {
-	$Endpoints | FOREACH {
-		IF ($_.Category -in ($Category)){
-			Write-Host $_.serviceAreaDisplayName -ForegroundColor Cyan
-			Write-Host $_.Category -ForegroundColor Magenta
-			
-			IF 		($IPVersion -eq "IPv4") { $_.ips | ? {$_ -like "*.*"}}	# only IPv4
-			ELSEIF 	($IPVersion -eq "IPv6") { $_.ips | ? {$_ -like "*:*"}}	# only IPv6
-			ELSE 	{ $_.ips | ? {$_ -like "*"}}
-			
-			IF ($_.urls -ne $NULL){$_.urls | Write-Host -ForegroundColor YELLOW}
-			IF ($_.tcpports -ne $NULL){$tcp = $_.tcpports + " (tcp)" | out-string; Write-Host $tcp -ForegroundColor GREEN}
-			IF ($_.udpports -ne $NULL){$udp = $_.udpports + " (udp)" | out-string; Write-Host $udp -ForegroundColor GREEN}
+$ClientID = [GUID]::NewGuid().Guid
+$Instance = "Worldwide"
+$FilePath = $($PSScriptRoot + "\o365endpoints.json")
+function Get-O365Endpoints {
+	# check for recent file	
+	IF (Test-Path $FilePath) {
+		IF ((Get-Item $FilePath).LastWriteTime -gt (Get-Date).AddDays(-1)) {
+			$Endpoints = Get-Content $FilePath -Encoding utf8 | ConvertFrom-Json
 		}
 	}
+	ELSE {
+		$EndpointUri = "https://endpoints.office.com/endpoints/" + $Instance + "?clientrequestid=" + $ClientID
+		# keep an offline copy
+		Invoke-RestMethod -Uri $EndpointUri -OutFile $FilePath
+		$Endpoints = Get-Content $FilePath -Encoding utf8 | ConvertFrom-Json
+	}
+	return $Endpoints
+}
+
+IF ($ChangesWithinLastNumOfDays) {
+	# download or load local M365 Endpoints file
+	$Endpoints = Get-O365Endpoints
+
+	# define time delta
+	# Version = <YYYYMMDDNN>
+	## $latestVersions = Invoke-RestMethod $("https://endpoints.office.com/version" + "?clientrequestid=" + $ClientID)
+	$DateChanges = (Get-Date).AddDays(-$ChangesWithinLastNumOfDays); $DateChanges = "{0:yyyyMMdd00}" -f $DateChanges
+	$FilePath = $($PSScriptRoot + "\o365endpoints_" + $DateChanges + ".json")
+
+	# check for recent file
+	IF (Test-Path $FilePath) {
+		$EndpointsChanged = Get-Content $FilePath -Encoding utf8 | ConvertFrom-Json
+	}
+	ELSE {
+		$EndpointUriChanges = "https://endpoints.office.com/changes/" + $Instance + "/" + $DateChanges + "?clientrequestid=" + $ClientID
+		$EndpointsChanged = Invoke-RestMethod $EndpointUriChanges -OutFile $FilePath
+		$EndpointsChanged = Get-Content $FilePath -Encoding utf8 | ConvertFrom-Json
+	}
+
+	$results += foreach ($endp in $EndpointsChanged) {
+
+		IF ($rm = $endp | Select-Object -ExpandProperty remove -ErrorAction SilentlyContinue) {}
+		#IF ($add = $endp | Select-Object -ExpandProperty remove -ErrorAction SilentlyContinue) {}
+
+		# map endpointSetId with service id
+		$serviceArea = $Endpoints | Where-Object id -eq $endp.endpointSetId
+		[PSCustomObject]@{
+			serviceArea = $serviceArea.serviceArea
+			version 	= $endp.version
+			category    = $serviceArea.category
+			required    = $serviceArea.required
+			protocol	= IF ($serviceArea.tcpPorts) { "tcp" } ELSEIF ($serviceArea.udpPorts) { "udp" }
+			ports       = IF ($tcp = $serviceArea.tcpports) { $tcp } ELSE { $serviceArea.udpPorts }
+			impact      = $endp.impact
+			ips         = IF ($rm) { ($endp | Select-Object -ExpandProperty remove -ErrorAction SilentlyContinue).ips } ELSE { ($endp | Select-Object -ExpandProperty add -ErrorAction SilentlyContinue).ips }
+			urls        = IF ($rm) { ($endp | Select-Object -ExpandProperty remove -ErrorAction SilentlyContinue).urls } ELSE { ($endp | Select-Object -ExpandProperty add -ErrorAction SilentlyContinue).urls }
+			notesPre    = $endp.previous.notes
+			notesCur    = $endp.current.notes
+		}
+	}
+	$results = $results |Sort-Object version -Descending
+	return $results
+}
+ELSE {
+	# download or load local M365 Endpoints file
+	$Endpoints = Get-O365Endpoints
+
+	$results += foreach ($endp in $Endpoints) {
+		[PSCustomObject]@{
+			serviceArea = $endp.serviceArea
+			category    = $endp.category
+			required    = $endp.required
+			protocol	= IF ($endp.tcpPorts) { "tcp" } ELSEIF ($endp.udpPorts) { "udp" }
+			ports       = IF ($tcp = $endp.tcpPorts) { $tcp } ELSE { $endp.udpPorts}
+			ipsv4       = ($endp).ips | Where-Object { $_ -like "*.*" }
+			ipsv6     	= ($endp).ips | Where-Object { $_ -like "*:*" }
+			urls        = ($endp).urls
+			notes      	= $endp.notes
+		}
+	}
+	
+	#---------------
+	# pre-filtering
+	IF ($Service -ne "any") { $results = $results | Where-Object { $_.ServiceArea -eq $Service } }
+	
+	IF ($Category -eq "OptimizeAllow") { $results = $results | Where-Object { $_.Category -eq "Optimize" -or $_.Category -eq "Allow" }; $Category = "Optimize", "Allow" }
+	ELSEIF ($Category -ne "any" -and $Category -ne "OptimizeAllow") { $results = $results | Where-Object { $_.Category -eq $Category } }
+	ELSE { $Category = "Optimize", "Allow", "Default" }
+
+	IF ($Required) 	{ $results = $results | Where-Object required -like $Required }
+	IF ($SearchURL) { $results = $results | Where-Object urls -match "$SearchURL" }
+	IF ($HttpOnly) 	{ $results = $results | Where-Object { $_.ports -like "*443*" -or $_.ports -like "*80*" -and $_.protocol -ne "udp" }}
+	IF ($URLsOnly) 	{ $results = $results | Where-Object urls -ne $NULL | Select-Object -ExpandProperty urls | Sort-Object -Unique }
+
+	IF ($IPsOnly) {
+		$results = $results | Where-Object { $_.ipsv4 -ne $NULL -or $_.ipsv6 -ne $NULL } | Sort-Object ipsv4, ipsv6 -Unique | Select-Object ipsv4, ipsv6
+		IF ($IPversion -eq "IPv4") 		{ $results = $results.ipsv4 | Sort-Object -Unique }
+		ELSEIF ($IPVersion -eq "IPv6") 	{ $results = $results.ipsv6 | Sort-Object -Unique }
+	}
+	#---------------
+	return $results
 }
