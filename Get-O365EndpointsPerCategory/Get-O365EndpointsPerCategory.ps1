@@ -99,7 +99,7 @@ IF ($ChangesWithinLastNumOfDays) {
 			version 	= $endp.version
 			category    = $serviceArea.category
 			required    = $serviceArea.required
-			protocol	= IF ($serviceArea.tcpPorts) { "tcp" } ELSEIF ($serviceArea.udpPorts) { "udp" }
+			protocol	= IF ($serviceArea.tcpPorts) { "tcp" } ELSEIF ($serviceArea.udpPorts) { "udp" } ELSE {}
 			ports       = IF ($tcp = $serviceArea.tcpports) { $tcp } ELSE { $serviceArea.udpPorts }
 			impact      = $endp.impact
 			ips         = IF ($rm) { ($endp | Select-Object -ExpandProperty remove -ErrorAction SilentlyContinue).ips } ELSE { ($endp | Select-Object -ExpandProperty add -ErrorAction SilentlyContinue).ips }
@@ -114,13 +114,13 @@ IF ($ChangesWithinLastNumOfDays) {
 ELSE {
 	# download or load local M365 Endpoints file
 	$Endpoints = Get-O365Endpoints
-
+	
 	$results += foreach ($endp in $Endpoints) {
 		[PSCustomObject]@{
 			serviceArea = $endp.serviceArea
 			category    = $endp.category
 			required    = $endp.required
-			protocol	= IF ($endp.tcpPorts) { "tcp" } ELSEIF ($endp.udpPorts) { "udp" }
+			protocol	= IF ($endp.tcpPorts) { "tcp" } ELSEIF ($endp.udpPorts) { "udp" } ELSE {}
 			ports       = IF ($tcp = $endp.tcpPorts) { $tcp } ELSE { $endp.udpPorts}
 			ipsv4       = ($endp).ips | Where-Object { $_ -like "*.*" }
 			ipsv6     	= ($endp).ips | Where-Object { $_ -like "*:*" }
