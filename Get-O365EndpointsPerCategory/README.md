@@ -10,20 +10,16 @@ In addition, you can use the script also to tack for changes within last time de
 
 ---
 
-**☝Tested with PowerShell 7 only:**
+**☝ Tested with PowerShell 7 only:**
 
-> <https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.2/>
-
-> <https://aka.ms/powershell-release?tag=stable/>
+> <https://aka.ms/GetPowershell/>
 
 ---
 
 **Specific switches/params:**
 
-```txt
-[switch]$HttpOnly = filtering for 80/443 tcp endpoints only
-[int]$ChangesWithinLastNumOfDays = query for changes within last x days
-```
+- `[switch]$HttpOnly` = filtering for 80/443 tcp endpoints only
+- `[int]$ChangesWithinLastNumOfDays` = query for changes within last x days
 
 **Examples:**
 
