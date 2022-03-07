@@ -117,6 +117,7 @@ ELSE {
 	
 	$results += foreach ($endp in $Endpoints) {
 		[PSCustomObject]@{
+			id 			= $endp.id
 			serviceArea = $endp.serviceArea
 			category    = $endp.category
 			required    = $endp.required
